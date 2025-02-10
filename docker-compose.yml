@@ -1,0 +1,101 @@
+services:
+  master:
+    image: postgres:latest
+    container_name: pg_master
+    restart: always
+    environment:
+      POSTGRES_USER: myuser
+      POSTGRES_PASSWORD: mypassword
+      POSTGRES_DB: mydb
+    command: >
+      bash -c "echo 'host replication myuser 172.18.0.0/16 trust' >> /var/lib/postgresql/data/pg_hba.conf &&
+      echo 'host all all 172.18.0.0/16 trust' >> /var/lib/postgresql/data/pg_hba.conf &&
+      docker-entrypoint.sh postgres -c wal_level=replica -c max_wal_senders=10 -c wal_keep_size=64MB -c hot_standby=on"
+    volumes:
+      - ./pg_master_data:/var/lib/postgresql/data
+    ports:
+      - "5532:5432"
+    networks:
+      - pg_network
+
+  replica1:
+    image: postgres:latest
+    container_name: pg_replica1
+    restart: always
+    environment:
+      POSTGRES_USER: myuser
+      POSTGRES_PASSWORD: mypassword
+      POSTGRES_DB: mydb
+      REPLICATE_FROM: master
+    command: >
+      bash -c "rm -rf /var/lib/postgresql/data/* &&
+      PGPASSWORD=mypassword pg_basebackup -h master -D /var/lib/postgresql/data -U myuser -P -R -X stream &&
+      touch /var/lib/postgresql/data/standby.signal &&
+      echo \"primary_conninfo = 'host=master port=5432 user=myuser password=mypassword'\" >> /var/lib/postgresql/data/postgresql.auto.conf &&
+      exec docker-entrypoint.sh postgres"
+    ports:
+      - "5533:5432"  
+    volumes:
+      - ./pg_slave_data1:/var/lib/postgresql/data  
+    depends_on:
+      - master
+    networks:
+      - pg_network
+
+  replica2:
+    image: postgres:latest
+    container_name: pg_replica2
+    restart: always
+    environment:
+      POSTGRES_USER: myuser
+      POSTGRES_PASSWORD: mypassword
+      POSTGRES_DB: mydb
+      REPLICATE_FROM: master
+    command: >
+      bash -c "rm -rf /var/lib/postgresql/data/* &&
+      PGPASSWORD=mypassword pg_basebackup -h master -D /var/lib/postgresql/data -U myuser -P -R -X stream &&
+      touch /var/lib/postgresql/data/standby.signal &&
+      echo \"primary_conninfo = 'host=master port=5432 user=myuser password=mypassword'\" >> /var/lib/postgresql/data/postgresql.auto.conf &&
+      exec docker-entrypoint.sh postgres"
+    ports:
+      - "5534:5432"  
+    volumes:
+      - ./pg_slave_data2:/var/lib/postgresql/data  
+    depends_on:
+      - master
+    networks:
+      - pg_network
+
+  replica3:
+    image: postgres:latest
+    container_name: pg_replica3
+    restart: always
+    environment:
+      POSTGRES_USER: myuser
+      POSTGRES_PASSWORD: mypassword
+      POSTGRES_DB: mydb
+      REPLICATE_FROM: master
+    command: >
+      bash -c "rm -rf /var/lib/postgresql/data/* &&
+      PGPASSWORD=mypassword pg_basebackup -h master -D /var/lib/postgresql/data -U myuser -P -R -X stream &&
+      touch /var/lib/postgresql/data/standby.signal &&
+      echo \"primary_conninfo = 'host=master port=5432 user=myuser password=mypassword'\" >> /var/lib/postgresql/data/postgresql.auto.conf &&
+      exec docker-entrypoint.sh postgres"
+    ports:
+      - "5535:5432"  
+    volumes:
+      - ./pg_slave_data3:/var/lib/postgresql/data  
+    depends_on:
+      - master
+    networks:
+      - pg_network
+
+networks:
+  pg_network:
+    driver: bridge
+
+volumes:
+  pg_master_data:
+  pg_slave_data1:
+  pg_slave_data2:
+  pg_slave_data3:
