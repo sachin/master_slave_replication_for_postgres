@@ -2,6 +2,12 @@
 
 This project demonstrates a robust PostgreSQL master-slave replication setup using Docker containers. It includes one master node and three slave nodes with comprehensive testing.
 
+## Architecture Overview
+
+![PostgreSQL Master-Slave Architecture](architecture.svg)
+
+The architecture consists of one master node and three slave nodes connected through a Docker network (pg_network). The master node handles all write operations and streams Write-Ahead Log (WAL) updates to the slave nodes, which operate in read-only mode.
+
 ## Features
 
 - One master and three slave nodes

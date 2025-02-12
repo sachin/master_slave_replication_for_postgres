@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="800" height="600" xmlns="http://www.w3.org/2000/svg">
+    <!-- Background -->
+    <rect width="800" height="600" fill="#f8f9fa"/>
+    
+    <!-- Title -->
+    <text x="400" y="40" text-anchor="middle" font-family="Arial" font-size="24" font-weight="bold" fill="#333">PostgreSQL Master-Slave Architecture</text>
+    
+    <!-- Master Node -->
+    <g transform="translate(350,150)">
+        <rect width="160" height="100" rx="10" fill="#2ecc71" stroke="#27ae60" stroke-width="2"/>
+        <text x="80" y="40" text-anchor="middle" font-family="Arial" font-size="16" fill="white">Master Node</text>
+        <text x="80" y="65" text-anchor="middle" font-family="Arial" font-size="12" fill="white">Port: 5532</text>
+        <text x="80" y="85" text-anchor="middle" font-family="Arial" font-size="12" fill="white">WAL Streaming</text>
+    </g>
+    
+    <!-- Slave Nodes -->
+    <g transform="translate(100,350)">
+        <rect width="140" height="80" rx="10" fill="#3498db" stroke="#2980b9" stroke-width="2"/>
+        <text x="70" y="35" text-anchor="middle" font-family="Arial" font-size="14" fill="white">Slave 1</text>
+        <text x="70" y="55" text-anchor="middle" font-family="Arial" font-size="12" fill="white">Port: 5533</text>
+    </g>
+    
+    <g transform="translate(330,350)">
+        <rect width="140" height="80" rx="10" fill="#3498db" stroke="#2980b9" stroke-width="2"/>
+        <text x="70" y="35" text-anchor="middle" font-family="Arial" font-size="14" fill="white">Slave 2</text>
+        <text x="70" y="55" text-anchor="middle" font-family="Arial" font-size="12" fill="white">Port: 5534</text>
+    </g>
+    
+    <g transform="translate(560,350)">
+        <rect width="140" height="80" rx="10" fill="#3498db" stroke="#2980b9" stroke-width="2"/>
+        <text x="70" y="35" text-anchor="middle" font-family="Arial" font-size="14" fill="white">Slave 3</text>
+        <text x="70" y="55" text-anchor="middle" font-family="Arial" font-size="12" fill="white">Port: 5535</text>
+    </g>
+    
+    <!-- Connection Lines -->
+    <g stroke="#95a5a6" stroke-width="2">
+        <!-- Master to Slave 1 -->
+        <line x1="380" y1="250" x2="170" y2="350" marker-end="url(#arrowhead)"/>
+        <!-- Master to Slave 2 -->
+        <line x1="430" y1="250" x2="400" y2="350" marker-end="url(#arrowhead)"/>
+        <!-- Master to Slave 3 -->
+        <line x1="480" y1="250" x2="630" y2="350" marker-end="url(#arrowhead)"/>
+    </g>
+    
+    <!-- Arrow Marker -->
+    <defs>
+        <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" fill="#95a5a6"/>
+        </marker>
+    </defs>
+    
+    <!-- Network Label -->
+    <text x="400" y="520" text-anchor="middle" font-family="Arial" font-size="14" fill="#666">Docker Network: pg_network</text>
+    
+    <!-- Legend -->
+    <g transform="translate(50,50)">
+        <rect width="15" height="15" fill="#2ecc71"/>
+        <text x="25" y="12" font-family="Arial" font-size="12" fill="#666">Master Node (Primary)</text>
+        
+        <rect y="25" width="15" height="15" fill="#3498db"/>
+        <text x="25" y="37" font-family="Arial" font-size="12" fill="#666">Slave Nodes (Replicas)</text>
+        
+        <line x1="0" y1="55" x2="15" y2="55" stroke="#95a5a6" stroke-width="2"/>
+        <text x="25" y="58" font-family="Arial" font-size="12" fill="#666">Replication Stream</text>
+    </g>
+</svg>
