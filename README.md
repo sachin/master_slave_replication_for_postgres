@@ -1,182 +1,155 @@
-# PostgreSQL Master-Slave Replication
+# PostgreSQL Master-Slave Replication Setup
 
-A robust PostgreSQL master-slave replication setup using Docker containers, providing high availability and read scalability through one master node and three replica nodes.
+This project demonstrates a robust PostgreSQL master-slave replication setup using Docker containers. It includes one master node and three slave nodes, with automatic failover capabilities and comprehensive testing.
 
 ## Features
 
-- Streaming replication with asynchronous mode
-- One master node (primary) and three replica nodes (hot standby)
-- Automatic replica synchronization
-- Docker-based deployment
-- Configurable WAL management
-- Trust-based authentication (for demonstration)
+- One master and three slave nodes
+- Streaming replication with WAL archiving
+- Automatic failover configuration
+- Health monitoring for all nodes
+- Comprehensive test suite
+- Environment-based configuration
 
-## Architecture Overview
+## Prerequisites
 
-- 1 Master Node (Primary)
-- 3 Replica Nodes (Hot Standby)
-- Streaming Replication
-- Asynchronous Replication Mode
+- Docker Engine (version 20.10.0 or higher)
+- Docker Compose (version 2.0.0 or higher)
+- At least 4GB of available RAM
+- 10GB of free disk space
 
-## Configuration Details
+## Quick Start
 
-### Master Node Configuration
-
-- Port: 5532 (Host) -> 5432 (Container)
-- WAL Level: replica
-- Maximum WAL Senders: 10
-- WAL Keep Size: 64MB
-- Hot Standby: enabled
-
-### Replica Nodes Configuration
-
-- Replica1: Port 5533 (Host) -> 5432 (Container)
-- Replica2: Port 5534 (Host) -> 5432 (Container)
-- Replica3: Port 5535 (Host) -> 5432 (Container)
-- All replicas are configured as hot standby servers
-
-## Environment Variables
-
-```env
-POSTGRES_USER=myuser
-POSTGRES_PASSWORD=mypassword
-POSTGRES_DB=mydb
-REPLICATE_FROM=master
-```
-
-## Network Configuration
-
-- Network Name: pg_network
-- Network Driver: bridge
-- Trust Authentication: Configured for 172.18.0.0/16 network
-
-## Volume Management
-
-- Master Data: ./pg_master_data
-- Replica1 Data: ./pg_slave_data1
-- Replica2 Data: ./pg_slave_data2
-- Replica3 Data: ./pg_slave_data3
-
-## Replication Configuration Details
-
-### Master Node
-
-```conf
-# WAL Configuration
-wal_level = replica           # Enables WAL archiving and replication
-max_wal_senders = 10         # Maximum number of concurrent connections from replica servers
-wal_keep_size = 64MB         # Amount of WAL files to retain for replicas
-hot_standby = on             # Allows read-only queries on replica servers
-
-# Authentication Configuration
-host replication myuser 172.18.0.0/16 trust    # Allows replication connections
-host all all 172.18.0.0/16 trust               # Allows regular connections
-```
-
-### Replica Nodes
-
-```conf
-# Replication Connection
-primary_conninfo = 'host=master port=5432 user=myuser password=mypassword'
-
-# Standby Configuration
-standby.signal                # Indicates this is a replica server
-```
-
-## Deployment Instructions
-
-1. Create the required directories:
+1. Clone the repository:
    ```bash
-   mkdir -p pg_master_data pg_slave_data1 pg_slave_data2 pg_slave_data3
+   git clone git@github.com:sachin/master_slave_replication_for_postgres.git
+   cd master_slave_replication_for_postgres
    ```
 
-2. Start the containers:
+2. Review and modify the `.env` file if needed:
    ```bash
-   docker-compose up -d
+   # Default credentials
+   POSTGRES_USER=myuser
+   POSTGRES_PASSWORD=mypassword
+   POSTGRES_DB=mydb
    ```
 
-3. Verify replication status on master:
+3. Start the containers:
    ```bash
+   docker compose up -d
+   ```
+
+4. Verify the setup:
+   ```bash
+   # Check replication status on master
    docker exec -it pg_master psql -U myuser -d mydb -c "SELECT * FROM pg_stat_replication;"
    ```
 
-## Replication Process
+## Configuration
 
-1. Master node is configured to allow replication connections
-2. Replica nodes perform initial backup using pg_basebackup
-3. Replicas continuously stream WAL changes from master
-4. Replicas apply received WAL records in real-time
+### Environment Variables
 
-## Key Features
+All configuration is managed through the `.env` file:
 
-- Streaming replication for minimal replication lag
-- Hot standby replicas for read scalability
-- Automatic failover capability
-- Volume persistence for data durability
-- Secure network isolation
+- **PostgreSQL Common Configuration**
+  - `POSTGRES_USER`: Database user (default: myuser)
+  - `POSTGRES_PASSWORD`: Database password (default: mypassword)
+  - `POSTGRES_DB`: Database name (default: mydb)
+  - `POSTGRES_INITDB_ARGS`: Additional initialization arguments
+  - `POSTGRES_HOST_AUTH_METHOD`: Authentication method
 
-## Common Operations
+- **Master Node Configuration**
+  - `MASTER_PORT`: Master node port (default: 5532)
+  - `WAL_LEVEL`: WAL level (default: replica)
+  - `MAX_WAL_SENDERS`: Maximum WAL sender processes
+  - `WAL_KEEP_SIZE`: WAL retention size
+  - `HOT_STANDBY`: Hot standby mode
+  - `MAX_REPLICATION_SLOTS`: Maximum replication slots
 
-### Check Replication Lag
-```sql
-SELECT client_addr, state, sent_lsn, write_lsn, flush_lsn, replay_lsn, 
-       write_lag, flush_lag, replay_lag
-FROM pg_stat_replication;
-```
+- **Slave Nodes Configuration**
+  - `SLAVE1_PORT`: Slave 1 port (default: 5533)
+  - `SLAVE2_PORT`: Slave 2 port (default: 5534)
+  - `SLAVE3_PORT`: Slave 3 port (default: 5535)
 
-### Monitor Replica Status
-```sql
-SELECT pid, state, client_addr, sync_state, sync_priority 
-FROM pg_stat_replication;
+### Network Configuration
+- `PG_NETWORK`: Docker network name (default: pg_network)
+
+## Testing
+
+A comprehensive test suite is included to verify the replication setup:
+
+1. Run the test script:
+   ```bash
+   cd test
+   ./test_replication.sh
+   ```
+
+The test suite performs the following checks:
+1. Verifies master and slave nodes are running
+2. Creates a test table on master
+3. Verifies replication on slaves
+4. Confirms read-only status on slaves
+5. Tests data consistency across nodes
+
+## Monitoring
+
+### Health Checks
+
+All nodes include health monitoring:
+- Interval: 10s
+- Timeout: 5s
+- Retries: 5
+- Start period: 30s
+
+### Replication Status
+
+Monitor replication status:
+```bash
+# On master
+docker exec -it pg_master psql -U myuser -d mydb -c "SELECT * FROM pg_stat_replication;"
+
+# On slaves
+docker exec -it pg_slave1 psql -U myuser -d mydb -c "SELECT * FROM pg_stat_wal_receiver;"
 ```
 
 ## Troubleshooting
 
-1. If replication fails to start:
-   - Check network connectivity between containers
-   - Verify pg_hba.conf entries
-   - Ensure WAL files are available
+### Common Issues
 
-2. If replication lag increases:
-   - Monitor system resources
-   - Check network bandwidth
-   - Verify WAL keep size settings
+1. **Containers fail to start**
+   - Check logs: `docker compose logs`
+   - Verify port availability
+   - Ensure sufficient system resources
 
-3. If replica falls behind:
-   - Check available disk space
-   - Monitor CPU and memory usage
-   - Verify streaming replication status
+2. **Replication not working**
+   - Check master logs: `docker compose logs master`
+   - Verify slave logs: `docker compose logs slave1`
+   - Confirm network connectivity
 
-## Security Considerations
+3. **Performance issues**
+   - Monitor resource usage
+   - Check WAL archiving status
+   - Verify network latency
 
-- Trust authentication is used for demonstration
-- Production environments should use encrypted passwords
-- SSL should be enabled for secure replication
-- Network access should be properly restricted
+### Maintenance
 
-## Maintenance Tasks
+1. **Cleanup**
+   ```bash
+   # Stop and remove containers, volumes
+   docker compose down -v
+   rm -rf pg_*
+   ```
 
-1. Regular WAL archiving cleanup
-2. Monitor replication slots
-3. Backup verification
-4. Log rotation management
+2. **Backup**
+   ```bash
+   # Create backup
+   docker exec pg_master pg_dumpall -U myuser > backup.sql
+   ```
 
-## Limitations
+## License
 
-- Asynchronous replication may have small data lag
-- No automatic failover mechanism included
-- Trust authentication is not suitable for production
+This project is licensed under the MIT License - see the LICENSE file for details.
 
-## Best Practices
+## Contributing
 
-1. Regular monitoring of replication status
-2. Implement proper backup strategy
-3. Use SSL for production environments
-4. Monitor disk space usage
-5. Implement connection pooling for better performance
-
-## Additional Resources
-
-- [PostgreSQL Documentation](https://www.postgresql.org/docs/current/high-availability.html)
-- [Docker Documentation](https://docs.docker.com/)
-- [PostgreSQL Replication](https://www.postgresql.org/docs/current/warm-standby.html)
+Contributions are welcome! Please feel free to submit a Pull Request.

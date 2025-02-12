@@ -1,101 +1,141 @@
+version: '3.8'
+
 services:
   master:
     image: postgres:latest
     container_name: pg_master
-    restart: always
+    restart: unless-stopped
+    command: postgres
     environment:
-      POSTGRES_USER: myuser
-      POSTGRES_PASSWORD: mypassword
-      POSTGRES_DB: mydb
-    command: >
-      bash -c "echo 'host replication myuser 172.18.0.0/16 trust' >> /var/lib/postgresql/data/pg_hba.conf &&
-      echo 'host all all 172.18.0.0/16 trust' >> /var/lib/postgresql/data/pg_hba.conf &&
-      docker-entrypoint.sh postgres -c wal_level=replica -c max_wal_senders=10 -c wal_keep_size=64MB -c hot_standby=on"
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_INITDB_ARGS: ${POSTGRES_INITDB_ARGS}
+      POSTGRES_HOST_AUTH_METHOD: ${POSTGRES_HOST_AUTH_METHOD}
+      PRIMARY_ROLE: "true"
     volumes:
-      - ./pg_master_data:/var/lib/postgresql/data
+      - ./init-master.sh:/docker-entrypoint-initdb.d/init-master.sh:ro
+      - pg_master_data:/var/lib/postgresql/data
     ports:
-      - "5532:5432"
+      - "${MASTER_PORT}:5432"
     networks:
       - pg_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
-  replica1:
+  slave1:
     image: postgres:latest
-    container_name: pg_replica1
-    restart: always
+    container_name: pg_slave1
+    restart: unless-stopped
     environment:
-      POSTGRES_USER: myuser
-      POSTGRES_PASSWORD: mypassword
-      POSTGRES_DB: mydb
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
       REPLICATE_FROM: master
     command: >
       bash -c "rm -rf /var/lib/postgresql/data/* &&
-      PGPASSWORD=mypassword pg_basebackup -h master -D /var/lib/postgresql/data -U myuser -P -R -X stream &&
+      until PGPASSWORD=${POSTGRES_PASSWORD} pg_basebackup -h master -D /var/lib/postgresql/data -U ${POSTGRES_USER} -P -R -X stream -S slave1_slot; do
+        echo 'Waiting for master to be ready...';
+        sleep 5;
+      done &&
       touch /var/lib/postgresql/data/standby.signal &&
-      echo \"primary_conninfo = 'host=master port=5432 user=myuser password=mypassword'\" >> /var/lib/postgresql/data/postgresql.auto.conf &&
+      echo \"primary_conninfo = 'host=master port=5432 user=${POSTGRES_USER} password=${POSTGRES_PASSWORD} application_name=slave1'\" >> /var/lib/postgresql/data/postgresql.auto.conf &&
       exec docker-entrypoint.sh postgres"
-    ports:
-      - "5533:5432"  
     volumes:
-      - ./pg_slave_data1:/var/lib/postgresql/data  
+      - pg_slave1_data:/var/lib/postgresql/data
+    ports:
+      - "${SLAVE1_PORT}:5432"
     depends_on:
-      - master
+      master:
+        condition: service_healthy
     networks:
       - pg_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
-  replica2:
+  slave2:
     image: postgres:latest
-    container_name: pg_replica2
-    restart: always
+    container_name: pg_slave2
+    restart: unless-stopped
     environment:
-      POSTGRES_USER: myuser
-      POSTGRES_PASSWORD: mypassword
-      POSTGRES_DB: mydb
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
       REPLICATE_FROM: master
     command: >
       bash -c "rm -rf /var/lib/postgresql/data/* &&
-      PGPASSWORD=mypassword pg_basebackup -h master -D /var/lib/postgresql/data -U myuser -P -R -X stream &&
+      until PGPASSWORD=${POSTGRES_PASSWORD} pg_basebackup -h master -D /var/lib/postgresql/data -U ${POSTGRES_USER} -P -R -X stream -S slave2_slot; do
+        echo 'Waiting for master to be ready...';
+        sleep 5;
+      done &&
       touch /var/lib/postgresql/data/standby.signal &&
-      echo \"primary_conninfo = 'host=master port=5432 user=myuser password=mypassword'\" >> /var/lib/postgresql/data/postgresql.auto.conf &&
+      echo \"primary_conninfo = 'host=master port=5432 user=${POSTGRES_USER} password=${POSTGRES_PASSWORD} application_name=slave2'\" >> /var/lib/postgresql/data/postgresql.auto.conf &&
       exec docker-entrypoint.sh postgres"
-    ports:
-      - "5534:5432"  
     volumes:
-      - ./pg_slave_data2:/var/lib/postgresql/data  
+      - pg_slave2_data:/var/lib/postgresql/data
+    ports:
+      - "${SLAVE2_PORT}:5432"
     depends_on:
-      - master
+      master:
+        condition: service_healthy
     networks:
       - pg_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
-  replica3:
+  slave3:
     image: postgres:latest
-    container_name: pg_replica3
-    restart: always
+    container_name: pg_slave3
+    restart: unless-stopped
     environment:
-      POSTGRES_USER: myuser
-      POSTGRES_PASSWORD: mypassword
-      POSTGRES_DB: mydb
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
       REPLICATE_FROM: master
     command: >
       bash -c "rm -rf /var/lib/postgresql/data/* &&
-      PGPASSWORD=mypassword pg_basebackup -h master -D /var/lib/postgresql/data -U myuser -P -R -X stream &&
+      until PGPASSWORD=${POSTGRES_PASSWORD} pg_basebackup -h master -D /var/lib/postgresql/data -U ${POSTGRES_USER} -P -R -X stream -S slave3_slot; do
+        echo 'Waiting for master to be ready...';
+        sleep 5;
+      done &&
       touch /var/lib/postgresql/data/standby.signal &&
-      echo \"primary_conninfo = 'host=master port=5432 user=myuser password=mypassword'\" >> /var/lib/postgresql/data/postgresql.auto.conf &&
+      echo \"primary_conninfo = 'host=master port=5432 user=${POSTGRES_USER} password=${POSTGRES_PASSWORD} application_name=slave3'\" >> /var/lib/postgresql/data/postgresql.auto.conf &&
       exec docker-entrypoint.sh postgres"
-    ports:
-      - "5535:5432"  
     volumes:
-      - ./pg_slave_data3:/var/lib/postgresql/data  
+      - pg_slave3_data:/var/lib/postgresql/data
+    ports:
+      - "${SLAVE3_PORT}:5432"
     depends_on:
-      - master
+      master:
+        condition: service_healthy
     networks:
       - pg_network
-
-networks:
-  pg_network:
-    driver: bridge
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
 volumes:
   pg_master_data:
-  pg_slave_data1:
-  pg_slave_data2:
-  pg_slave_data3:
+  pg_slave1_data:
+  pg_slave2_data:
+  pg_slave3_data:
+
+networks:
+  pg_network:
+    name: ${PG_NETWORK}
+    driver: bridge
