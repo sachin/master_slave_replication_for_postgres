@@ -15,7 +15,7 @@ services:
       PRIMARY_ROLE: "true"
     volumes:
       - ./init-master.sh:/docker-entrypoint-initdb.d/init-master.sh:ro
-      - pg_master_data:/var/lib/postgresql/data
+      - ./pg_master_data:/var/lib/postgresql/data
     ports:
       - "${MASTER_PORT}:5432"
     networks:
@@ -46,7 +46,7 @@ services:
       echo \"primary_conninfo = 'host=master port=5432 user=${POSTGRES_USER} password=${POSTGRES_PASSWORD} application_name=slave1'\" >> /var/lib/postgresql/data/postgresql.auto.conf &&
       exec docker-entrypoint.sh postgres"
     volumes:
-      - pg_slave1_data:/var/lib/postgresql/data
+      - ./pg_slave1_data:/var/lib/postgresql/data
     ports:
       - "${SLAVE1_PORT}:5432"
     depends_on:
@@ -80,7 +80,7 @@ services:
       echo \"primary_conninfo = 'host=master port=5432 user=${POSTGRES_USER} password=${POSTGRES_PASSWORD} application_name=slave2'\" >> /var/lib/postgresql/data/postgresql.auto.conf &&
       exec docker-entrypoint.sh postgres"
     volumes:
-      - pg_slave2_data:/var/lib/postgresql/data
+      - ./pg_slave2_data:/var/lib/postgresql/data
     ports:
       - "${SLAVE2_PORT}:5432"
     depends_on:
@@ -114,7 +114,7 @@ services:
       echo \"primary_conninfo = 'host=master port=5432 user=${POSTGRES_USER} password=${POSTGRES_PASSWORD} application_name=slave3'\" >> /var/lib/postgresql/data/postgresql.auto.conf &&
       exec docker-entrypoint.sh postgres"
     volumes:
-      - pg_slave3_data:/var/lib/postgresql/data
+      - ./pg_slave3_data:/var/lib/postgresql/data
     ports:
       - "${SLAVE3_PORT}:5432"
     depends_on:
