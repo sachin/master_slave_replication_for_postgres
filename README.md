@@ -1,12 +1,11 @@
 # PostgreSQL Master-Slave Replication Setup
 
-This project demonstrates a robust PostgreSQL master-slave replication setup using Docker containers. It includes one master node and three slave nodes, with automatic failover capabilities and comprehensive testing.
+This project demonstrates a robust PostgreSQL master-slave replication setup using Docker containers. It includes one master node and three slave nodes with comprehensive testing.
 
 ## Features
 
 - One master and three slave nodes
 - Streaming replication with WAL archiving
-- Automatic failover configuration
 - Health monitoring for all nodes
 - Comprehensive test suite
 - Environment-based configuration
@@ -46,6 +45,20 @@ This project demonstrates a robust PostgreSQL master-slave replication setup usi
    ```
 
 ## Configuration
+
+### PostgreSQL Replication Settings
+
+The master node is configured with the following replication settings in init-master.sh:
+
+- **listen_addresses = '*'**: Allows connections from any IP address
+- **wal_level = replica**: Enables WAL (Write-Ahead Logging) at a level suitable for replication
+- **max_wal_senders = 10**: Maximum number of concurrent connections for WAL streaming
+- **wal_keep_size = 64MB**: Amount of WAL files to retain for replication
+- **hot_standby = on**: Allows read-only queries on slave nodes during recovery
+- **max_replication_slots = 10**: Maximum number of replication slots for managing WAL retention
+- **synchronous_commit = on**: Ensures WAL is written to disk before transactions complete
+- **max_connections = 100**: Maximum number of concurrent database connections
+- **shared_buffers = 128MB**: Amount of memory used for shared memory buffers
 
 ### Environment Variables
 
