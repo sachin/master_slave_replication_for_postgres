@@ -93,8 +93,7 @@ A comprehensive test suite is included to verify the replication setup:
 
 1. Run the test script:
    ```bash
-   cd test
-   ./test_replication.sh
+   ./test/test_replication.sh
    ```
 
 The test suite performs the following checks:
